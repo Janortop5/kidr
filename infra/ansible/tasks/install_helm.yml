@@ -1,42 +1,22 @@
 ---
-# Playbook to install Helm and Prometheus on a Kubernetes cluster
-- name: Add Helm signing key
-  ansible.builtin.apt_key:
-    url: https://baltocdn.com/helm/signing.asc
-    state: present
-  register: helm_key_result
-  until: helm_key_result is succeeded
-  retries: 3
-  delay: 5
+- name: Install Helm using official script
+  ansible.builtin.shell:
+    cmd: |
+      curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    creates: /usr/local/bin/helm
+  when: "'master-node' in group_names"
+  register: helm_install
 
-- name: Install apt-transport-https
-  ansible.builtin.apt:
-    name: apt-transport-https
-    state: present
-    update_cache: yes
-
-- name: Add Helm repository
-  ansible.builtin.apt_repository:
-    repo: "deb https://baltocdn.com/helm/stable/debian/ all main"
-    state: present
-    filename: helm-stable-debian
-
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: yes
-
-- name: Install Helm
-  ansible.builtin.apt:
-    name: helm
-    state: present
-  register: helm_install_result
-
-# Verify Helm is installed correctly
 - name: Verify Helm installation
-  ansible.builtin.command: helm version
+  ansible.builtin.command: helm version --short
   register: helm_version
   changed_when: false
-  failed_when: helm_version.rc != 0
+  when: "'master-node' in group_names"
+
+- name: Display Helm version
+  ansible.builtin.debug:
+    var: helm_version.stdout
+  when: "'master-node' in group_names"
 
 # Add Prometheus Helm repository
 - name: Add Prometheus Helm repository
